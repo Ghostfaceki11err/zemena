@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: 'Archiv Grotesk Zemenay';
+  src: url('/fonts/Archiv Grotesk Zemenay Font.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 0, 0, 0;
+  --background-end-rgb: 0, 0, 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+@layer base {
+  :root {
+    --background: #000000;
+    --foreground: #FFFFFF;
+    --card: #000000;
+    --card-foreground: #FFFFFF;
+    --popover: #000000;
+    --popover-foreground: #FFFFFF;
+    --primary: #DC2626;
+    --primary-foreground: #FFFFFF;
+    --secondary: #1F1F1F;
+    --secondary-foreground: #FFFFFF;
+    --muted: #1F1F1F;
+    --muted-foreground: #CCCCCC;
+    --accent: #DC2626;
+    --accent-foreground: #FFFFFF;
+    --destructive: #DC2626;
+    --destructive-foreground: #FFFFFF;
+    --border: #333333;
+    --input: #1F1F1F;
+    --ring: #DC2626;
+    --chart-1: #DC2626;
+    --chart-2: #B91C1C;
+    --chart-3: #991B1B;
+    --chart-4: #7F1D1D;
+    --chart-5: #450A0A;
+    --radius: 0.5rem;
+  }
+  .dark {
+    --background: #000000;
+    --foreground: #FFFFFF;
+    --card: #000000;
+    --card-foreground: #FFFFFF;
+    --popover: #000000;
+    --popover-foreground: #FFFFFF;
+    --primary: #DC2626;
+    --primary-foreground: #FFFFFF;
+    --secondary: #1F1F1F;
+    --secondary-foreground: #FFFFFF;
+    --muted: #1F1F1F;
+    --muted-foreground: #CCCCCC;
+    --accent: #DC2626;
+    --accent-foreground: #FFFFFF;
+    --destructive: #DC2626;
+    --destructive-foreground: #FFFFFF;
+    --border: #333333;
+    --input: #1F1F1F;
+    --ring: #DC2626;
+    --chart-1: #DC2626;
+    --chart-2: #B91C1C;
+    --chart-3: #991B1B;
+    --chart-4: #7F1D1D;
+    --chart-5: #450A0A;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
