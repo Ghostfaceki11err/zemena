@@ -19,11 +19,10 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { login, error, clearError } = useAuth();
+  const { signIn } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    clearError();
     
     if (!email || !password) {
       toast.error('Please fill in all fields');
@@ -46,7 +45,7 @@ function LoginForm() {
     setIsLoading(true);
 
     try {
-      const result = await login(email, password);
+      const result = await signIn(email, password);
       
       if (result.success) {
         toast.success('Login successful! Redirecting to admin panel...');
@@ -92,15 +91,11 @@ function LoginForm() {
             <p className="text-gray-400 text-sm">
               Enter your admin credentials to access the panel
             </p>
+            <p className="text-gray-500 text-xs mt-2">
+              Demo: admin@zemenay.com / admin123
+            </p>
           </CardHeader>
           <CardContent>
-            {/* Error Display */}
-            {error && (
-              <div className="mb-4 p-3 bg-red-900/50 border border-red-500 rounded-md">
-                <p className="text-red-300 text-sm">{error}</p>
-              </div>
-            )}
-
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Email Field */}
               <div className="space-y-2">
@@ -114,10 +109,7 @@ function LoginForm() {
                     type="email"
                     placeholder="Enter your email"
                     value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      clearError();
-                    }}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="pl-10 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500"
                     required
                     disabled={isLoading}
@@ -137,10 +129,7 @@ function LoginForm() {
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Enter your password"
                     value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      clearError();
-                    }}
+                    onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 pr-10 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500"
                     required
                     disabled={isLoading}

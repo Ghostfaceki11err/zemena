@@ -6,7 +6,7 @@ import MobileSidebar from '@/components/layout/MobileSidebar';
 import Footer from '@/components/layout/Footer';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { Toaster } from '@/components/ui/sonner';
-import { initializePosts } from '@/lib/posts';
+import { initializeSamplePosts } from '@/lib/posts';
 import { AuthProvider } from '@/contexts/AuthContext';
 
 export default function AdminLayout({
@@ -17,15 +17,8 @@ export default function AdminLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    const initPosts = async () => {
-      try {
-        await initializePosts();
-      } catch (error) {
-        console.error('Error initializing posts:', error);
-      }
-    };
-    
-    initPosts();
+    // Initialize sample posts
+    initializeSamplePosts();
   }, []);
 
   return (

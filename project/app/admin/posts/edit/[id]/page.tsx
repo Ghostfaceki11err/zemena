@@ -9,21 +9,32 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 
 interface EditPostPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default function AdminEditPostPage({ params }: EditPostPageProps) {
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [postId, setPostId] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
+    const loadParams = async () => {
+      const resolvedParams = await params;
+      setPostId(resolvedParams.id);
+    };
+    loadParams();
+  }, [params]);
+
+  useEffect(() => {
     const loadPost = async () => {
+      if (!postId) return;
+      
       try {
-        const foundPost = await getPostById(parseInt(params.id));
+        const foundPost = await getPostById(parseInt(postId));
         if (foundPost) {
           setPost(foundPost);
         } else {
@@ -40,7 +51,7 @@ export default function AdminEditPostPage({ params }: EditPostPageProps) {
     };
 
     loadPost();
-  }, [params.id, router]);
+  }, [postId, router]);
 
   const handleSubmit = async (data: PostFormData) => {
     if (!post) return;

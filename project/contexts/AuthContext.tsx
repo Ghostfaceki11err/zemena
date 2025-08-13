@@ -1,164 +1,122 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
-import { supabase, getSession, getCurrentUser, signOut as supabaseSignOut } from '@/lib/supabaseClient';
-import type { User, Session, AuthError } from '@supabase/supabase-js';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
+// Simple user type for local auth
+export interface User {
+  id: string;
+  email: string;
+  name?: string;
+}
 
 interface AuthContextType {
-  isAuthenticated: boolean;
-  userEmail: string | null;
   user: User | null;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  logout: () => Promise<void>;
   loading: boolean;
-  error: string | null;
-  clearError: () => void;
+  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signOut: () => Promise<void>;
+  signUp: (email: string, password: string, name?: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Simple local storage key for auth
+const AUTH_STORAGE_KEY = 'zemenay_auth';
+
+// Helper functions for local storage
+const getAuthFromStorage = (): User | null => {
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : null;
+  } catch (error) {
+    console.error('Error reading auth from localStorage:', error);
+    return null;
+  }
+};
+
+const saveAuthToStorage = (user: User | null): void => {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    if (user) {
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
+    } else {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+    }
+  } catch (error) {
+    console.error('Error saving auth to localStorage:', error);
+  }
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
-
-  const clearError = () => setError(null);
 
   useEffect(() => {
-    // Check if user is already authenticated on page load
-    const checkAuth = async () => {
-      try {
-        const session = await getSession();
-        if (session?.user) {
-          setIsAuthenticated(true);
-          setUserEmail(session.user.email || null);
-          setUser(session.user);
-        }
-      } catch (error) {
-        console.error('Error checking authentication:', error);
-        setError('Failed to check authentication status');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkAuth();
-
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        try {
-          if (event === 'SIGNED_IN' && session?.user) {
-            setIsAuthenticated(true);
-            setUserEmail(session.user.email || null);
-            setUser(session.user);
-            setError(null);
-          } else if (event === 'SIGNED_OUT') {
-            setIsAuthenticated(false);
-            setUserEmail(null);
-            setUser(null);
-            setError(null);
-          } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-            // Token refreshed, update user info
-            setIsAuthenticated(true);
-            setUserEmail(session.user.email || null);
-            setUser(session.user);
-            setError(null);
-          }
-        } catch (error) {
-          console.error('Auth state change error:', error);
-          setError('Authentication state change failed');
-        } finally {
-          setLoading(false);
-        }
-      }
-    );
-
-    return () => subscription.unsubscribe();
+    // Check for existing auth on mount
+    const savedUser = getAuthFromStorage();
+    if (savedUser) {
+      setUser(savedUser);
+    }
+    setLoading(false);
   }, []);
 
-  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const signIn = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      setError(null);
-      setLoading(true);
-
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (authError) {
-        console.error('Login error:', authError);
-        let errorMessage = 'Login failed';
+      // Simple demo authentication - in a real app, you'd validate against a backend
+      if (email === 'admin@zemenay.com' && password === 'admin123') {
+        const user: User = {
+          id: '1',
+          email: email,
+          name: 'Admin User'
+        };
         
-        // Handle specific Supabase auth errors
-        if (authError.message.includes('Invalid login credentials')) {
-          errorMessage = 'Invalid email or password';
-        } else if (authError.message.includes('Email not confirmed')) {
-          errorMessage = 'Please verify your email address before signing in';
-        } else if (authError.message.includes('Too many requests')) {
-          errorMessage = 'Too many login attempts. Please try again later';
-        } else {
-          errorMessage = authError.message;
-        }
-        
-        setError(errorMessage);
-        return { success: false, error: errorMessage };
-      }
-
-      if (data.user) {
-        setIsAuthenticated(true);
-        setUserEmail(data.user.email || null);
-        setUser(data.user);
-        setError(null);
+        setUser(user);
+        saveAuthToStorage(user);
         return { success: true };
+      } else {
+        return { success: false, error: 'Invalid email or password' };
       }
-
-      const noUserError = 'Login failed - no user data received';
-      setError(noUserError);
-      return { success: false, error: noUserError };
     } catch (error) {
-      console.error('Login error:', error);
-      const errorMessage = 'An unexpected error occurred during login';
-      setError(errorMessage);
-      return { success: false, error: errorMessage };
-    } finally {
-      setLoading(false);
+      console.error('Sign in error:', error);
+      return { success: false, error: 'An error occurred during sign in' };
     }
   };
 
-  const logout = async (): Promise<void> => {
+  const signUp = async (email: string, password: string, name?: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      setError(null);
-      setLoading(true);
+      // Simple demo registration - in a real app, you'd create a user in a backend
+      const user: User = {
+        id: Date.now().toString(),
+        email: email,
+        name: name || 'User'
+      };
       
-      await supabaseSignOut();
-      setIsAuthenticated(false);
-      setUserEmail(null);
-      setUser(null);
-      setError(null);
-      router.push('/login');
+      setUser(user);
+      saveAuthToStorage(user);
+      return { success: true };
     } catch (error) {
-      console.error('Logout error:', error);
-      setError('Logout failed. Please try again.');
-    } finally {
-      setLoading(false);
+      console.error('Sign up error:', error);
+      return { success: false, error: 'An error occurred during sign up' };
     }
   };
 
-  const value = {
-    isAuthenticated,
-    userEmail,
+  const signOut = async (): Promise<void> => {
+    try {
+      setUser(null);
+      saveAuthToStorage(null);
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
+  };
+
+  const value: AuthContextType = {
     user,
-    login,
-    logout,
     loading,
-    error,
-    clearError,
+    signIn,
+    signOut,
+    signUp,
   };
 
   return (
@@ -168,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useAuth() {
+export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');

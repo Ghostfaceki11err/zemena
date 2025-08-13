@@ -1,7 +1,9 @@
 import { Post, PostFormData } from '@/types/post';
-import { supabase } from './supabaseClient';
 
-// Sample posts for demonstration (fallback)
+// Local storage key for posts
+const POSTS_STORAGE_KEY = 'zemenay_posts';
+
+// Sample posts for demonstration
 const samplePosts: Post[] = [
   {
     id: 1,
@@ -36,200 +38,174 @@ const samplePosts: Post[] = [
     created_at: '2024-01-13T09:15:00.000Z',
     updated_at: '2024-01-13T09:15:00.000Z',
   },
-  {
-    id: 4,
-    title: 'Digital Transformation Strategies',
-    content: 'How businesses can leverage technology to transform their operations and customer experiences. Real-world examples and actionable insights for modern enterprises.',
-    excerpt: 'Leverage technology to transform business operations and customer experiences.',
-    status: 'published',
-    slug: 'digital-transformation-strategies',
-    author: 'Admin',
-    created_at: '2024-01-12T16:45:00.000Z',
-    updated_at: '2024-01-12T16:45:00.000Z',
-  },
-  {
-    id: 5,
-    title: 'Cloud Solutions for Small Businesses',
-    content: 'Affordable cloud computing solutions that can help small businesses scale efficiently. Compare different platforms and find the right fit for your organization.',
-    excerpt: 'Affordable cloud computing solutions for small business growth.',
-    status: 'draft',
-    slug: 'cloud-solutions-for-small-businesses',
-    author: 'Admin',
-    created_at: '2024-01-11T11:20:00.000Z',
-    updated_at: '2024-01-11T11:20:00.000Z',
-  },
 ];
 
-export const initializePosts = async (): Promise<void> => {
+// Helper functions for local storage
+const getPostsFromStorage = (): Post[] => {
+  if (typeof window === 'undefined') return [];
+  
   try {
-    // Check if posts table has data
-    const { data: existingPosts, error } = await supabase
-      .from('posts')
-      .select('*')
-      .limit(1);
-
-    if (error) {
-      console.error('Error checking posts table:', error);
-      return;
-    }
-
-    // If no posts exist, insert sample data
-    if (!existingPosts || existingPosts.length === 0) {
-      const { error: insertError } = await supabase
-        .from('posts')
-        .insert(samplePosts);
-
-      if (insertError) {
-        console.error('Error inserting sample posts:', insertError);
-      } else {
-        console.log('Sample posts initialized successfully');
-      }
-    }
+    const stored = localStorage.getItem(POSTS_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
   } catch (error) {
-    console.error('Error initializing posts:', error);
+    console.error('Error reading posts from localStorage:', error);
+    return [];
   }
 };
 
-export const getAllPosts = async (): Promise<Post[]> => {
+const savePostsToStorage = (posts: Post[]): void => {
+  if (typeof window === 'undefined') return;
+  
   try {
-    const { data: posts, error } = await supabase
-      .from('posts')
-      .select('*')
-      .order('createdAt', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching posts:', error);
-      return samplePosts; // Fallback to sample data
-    }
-
-    return posts || samplePosts;
+    localStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(posts));
   } catch (error) {
-    console.error('Error in getAllPosts:', error);
-    return samplePosts; // Fallback to sample data
+    console.error('Error saving posts to localStorage:', error);
   }
 };
 
-export const getPostById = async (id: number): Promise<Post | null> => {
-  try {
-    const { data: post, error } = await supabase
-      .from('posts')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (error) {
-      console.error('Error fetching post:', error);
-      return null;
-    }
-
-    return post;
-  } catch (error) {
-    console.error('Error in getPostById:', error);
-    return null;
+// Initialize sample posts if none exist
+export const initializeSamplePosts = (): void => {
+  if (typeof window === 'undefined') return;
+  
+  const existingPosts = getPostsFromStorage();
+  if (existingPosts.length === 0) {
+    savePostsToStorage(samplePosts);
+    console.log('✅ Sample posts initialized in localStorage');
   }
 };
 
+// Generate a unique ID
+const generateId = (): number => {
+  const posts = getPostsFromStorage();
+  const maxId = posts.length > 0 ? Math.max(...posts.map(p => p.id)) : 0;
+  return maxId + 1;
+};
+
+// Create a new post
 export const createPost = async (postData: PostFormData): Promise<Post | null> => {
   try {
-    console.log('=== POST CREATION DEBUG ===');
-    console.log('Creating post with data:', postData);
-    console.log('Supabase client:', supabase);
+    const posts = getPostsFromStorage();
     
-    const newPost = {
+    // Check for duplicate slug
+    const existingPost = posts.find(post => post.slug === postData.title.toLowerCase().replace(/\s+/g, '-'));
+    if (existingPost) {
+      throw new Error('A post with this title already exists');
+    }
+
+    const newPost: Post = {
+      id: generateId(),
       title: postData.title,
       content: postData.content,
       excerpt: postData.excerpt,
       status: postData.status,
-      slug: postData.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
-      author: 'Admin', // Default author
+      slug: postData.title.toLowerCase().replace(/\s+/g, '-'),
+      author: 'Admin', // Default author for local storage
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
 
-    console.log('Formatted post data:', newPost);
-    console.log('Attempting Supabase insert...');
-
-    const { data: post, error } = await supabase
-      .from('posts')
-      .insert([newPost])
-      .select()
-      .single();
-
-    console.log('Supabase response:', { data: post, error });
-
-    if (error) {
-      console.error('❌ Supabase error creating post:', error);
-      console.error('Error details:', {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code
-      });
-      
-      // Check if it's a table structure issue
-      if (error.message.includes('relation') || error.message.includes('table')) {
-        console.error('🚨 This looks like a table structure issue!');
-        console.error('Make sure your Supabase table is named "posts" and has the correct columns');
-      }
-      
-      return null;
-    }
-
-    console.log('✅ Post created successfully:', post);
-    return post;
+    posts.push(newPost);
+    savePostsToStorage(posts);
+    
+    console.log('✅ Post created successfully:', newPost);
+    return newPost;
   } catch (error) {
-    console.error('💥 Unexpected error in createPost:', error);
-    console.error('Error type:', typeof error);
-    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error('❌ Error creating post:', error);
+    throw error;
+  }
+};
+
+// Get all posts
+export const getAllPosts = async (): Promise<Post[]> => {
+  try {
+    const posts = getPostsFromStorage();
+    console.log('✅ Retrieved posts from localStorage:', posts.length);
+    return posts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  } catch (error) {
+    console.error('❌ Error getting posts:', error);
+    return [];
+  }
+};
+
+// Get a single post by ID
+export const getPostById = async (id: number): Promise<Post | null> => {
+  try {
+    const posts = getPostsFromStorage();
+    const post = posts.find(p => p.id === id);
+    console.log('✅ Retrieved post by ID:', post);
+    return post || null;
+  } catch (error) {
+    console.error('❌ Error getting post by ID:', error);
     return null;
   }
 };
 
+// Update a post
 export const updatePost = async (id: number, postData: PostFormData): Promise<Post | null> => {
   try {
-    const updateData = {
+    const posts = getPostsFromStorage();
+    const postIndex = posts.findIndex(p => p.id === id);
+    
+    if (postIndex === -1) {
+      throw new Error('Post not found');
+    }
+
+    // Check for duplicate slug (excluding current post)
+    const existingPost = posts.find(post => 
+      post.slug === postData.title.toLowerCase().replace(/\s+/g, '-') && post.id !== id
+    );
+    if (existingPost) {
+      throw new Error('A post with this title already exists');
+    }
+
+    const updatedPost: Post = {
+      ...posts[postIndex],
       title: postData.title,
       content: postData.content,
       excerpt: postData.excerpt,
       status: postData.status,
-      slug: postData.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+      slug: postData.title.toLowerCase().replace(/\s+/g, '-'),
       updated_at: new Date().toISOString(),
     };
 
-    const { data: post, error } = await supabase
-      .from('posts')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error updating post:', error);
-      return null;
-    }
-
-    return post;
+    posts[postIndex] = updatedPost;
+    savePostsToStorage(posts);
+    
+    console.log('✅ Post updated successfully:', updatedPost);
+    return updatedPost;
   } catch (error) {
-    console.error('Error in updatePost:', error);
-    return null;
+    console.error('❌ Error updating post:', error);
+    throw error;
   }
 };
 
+// Delete a post
 export const deletePost = async (id: number): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from('posts')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error deleting post:', error);
-      return false;
+    const posts = getPostsFromStorage();
+    const filteredPosts = posts.filter(p => p.id !== id);
+    
+    if (filteredPosts.length === posts.length) {
+      throw new Error('Post not found');
     }
 
+    savePostsToStorage(filteredPosts);
+    console.log('✅ Post deleted successfully');
     return true;
   } catch (error) {
-    console.error('Error in deletePost:', error);
+    console.error('❌ Error deleting post:', error);
     return false;
+  }
+};
+
+// Get published posts only
+export const getPublishedPosts = async (): Promise<Post[]> => {
+  try {
+    const posts = getPostsFromStorage();
+    const publishedPosts = posts.filter(post => post.status === 'published');
+    return publishedPosts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  } catch (error) {
+    console.error('❌ Error getting published posts:', error);
+    return [];
   }
 };

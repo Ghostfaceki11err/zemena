@@ -18,11 +18,11 @@ export default function PostsPage() {
   const [loading, setLoading] = useState(true);
   const [deleteDialog, setDeleteDialog] = useState<{
     isOpen: boolean;
-    postId: string;
+    postId: number;
     postTitle: string;
-  }>({
+      }>({
     isOpen: false,
-    postId: '',
+    postId: 0,
     postTitle: '',
   });
   const [isDeleting, setIsDeleting] = useState(false);
@@ -47,7 +47,7 @@ export default function PostsPage() {
 
   const loadPosts = async () => {
     try {
-      const allPosts = getAllPosts();
+      const allPosts = await getAllPosts();
       setPosts(allPosts);
       setFilteredPosts(allPosts);
     } catch (error) {
@@ -69,7 +69,7 @@ export default function PostsPage() {
   const handleDeleteConfirm = async () => {
     setIsDeleting(true);
     try {
-      const success = deletePost(deleteDialog.postId);
+      const success = await deletePost(deleteDialog.postId);
       if (success) {
         await loadPosts();
         toast.success('Post deleted successfully');
@@ -81,7 +81,7 @@ export default function PostsPage() {
       toast.error('Failed to delete post');
     } finally {
       setIsDeleting(false);
-      setDeleteDialog({ isOpen: false, postId: '', postTitle: '' });
+      setDeleteDialog({ isOpen: false, postId: 0, postTitle: '' });
     }
   };
 
@@ -159,7 +159,7 @@ export default function PostsPage() {
       {/* Delete Confirmation Dialog */}
       <DeleteDialog
         isOpen={deleteDialog.isOpen}
-        onClose={() => setDeleteDialog({ isOpen: false, postId: '', postTitle: '' })}
+        onClose={() => setDeleteDialog({ isOpen: false, postId: 0, postTitle: '' })}
         onConfirm={handleDeleteConfirm}
         title={deleteDialog.postTitle}
         isLoading={isDeleting}

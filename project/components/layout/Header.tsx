@@ -27,7 +27,11 @@ interface HeaderProps {
 export default function Header({ onMenuClick }: HeaderProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const pathname = usePathname();
-  const { userEmail, logout } = useAuth();
+  const { user, signOut } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
+  };
 
   return (
     <div className="bg-black shadow-sm border-b border-gray-800">
@@ -67,13 +71,13 @@ export default function Header({ onMenuClick }: HeaderProps) {
             {/* User Info and Logout */}
             <div className="flex items-center space-x-3">
               <div className="text-right hidden sm:block">
-                <p className="text-sm text-gray-300">{userEmail}</p>
+                <p className="text-sm text-gray-300">{user?.email}</p>
                 <p className="text-xs text-gray-500">Admin</p>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={logout}
+                onClick={handleLogout}
                 className="text-gray-300 hover:text-red-400 hover:bg-gray-800"
               >
                 <LogOut className="h-4 w-4 mr-2" />

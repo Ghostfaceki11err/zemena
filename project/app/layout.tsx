@@ -2,14 +2,17 @@
 
 import './globals.css';
 import { Inter } from 'next/font/google';
+import { useEffect } from 'react';
+import { initializeSamplePosts } from '@/lib/posts';
 
 const inter = Inter({ subsets: ['latin'] });
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function LayoutContent({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    // Initialize sample posts on client side
+    initializeSamplePosts();
+  }, []);
+
   return (
     <html lang="en">
       <head>
@@ -36,4 +39,12 @@ export default function RootLayout({
       </body>
     </html>
   );
+}
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return <LayoutContent>{children}</LayoutContent>;
 }

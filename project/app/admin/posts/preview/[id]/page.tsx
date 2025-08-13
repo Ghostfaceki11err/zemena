@@ -13,20 +13,31 @@ import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 
 interface PreviewPostPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default function AdminPreviewPostPage({ params }: PreviewPostPageProps) {
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
+  const [postId, setPostId] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
+    const loadParams = async () => {
+      const resolvedParams = await params;
+      setPostId(resolvedParams.id);
+    };
+    loadParams();
+  }, [params]);
+
+  useEffect(() => {
     const loadPost = async () => {
+      if (!postId) return;
+      
       try {
-        const foundPost = getPostById(params.id);
+        const foundPost = await getPostById(parseInt(postId));
         if (foundPost) {
           setPost(foundPost);
         } else {
@@ -43,7 +54,7 @@ export default function AdminPreviewPostPage({ params }: PreviewPostPageProps) {
     };
 
     loadPost();
-  }, [params.id, router]);
+  }, [postId, router]);
 
   if (loading) {
     return (
